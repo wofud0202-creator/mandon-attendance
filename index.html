@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>만돈 — 근무 기록</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --dark:    #1a1a18;
+      --dark2:   #2a2a26;
+      --accent:  #c9a96e;
+      --cream:   #f4f3ef;
+      --surface: #ffffff;
+      --border:  #e4e1da;
+      --text:    #1a1a18;
+      --muted:   #9a9690;
+      --success: #4a7c59;
+      --error:   #c0392b;
+      --warn:    #b5873c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--cream);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 24px 16px;
+    }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(26,26,24,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      width: 100%; max-width: 400px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(26,26,24,0.10);
+      animation: fadeUp .4s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(16px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* 헤더 */
+    .header {
+      background: var(--dark);
+      padding: 26px 28px 20px;
+      text-align: center;
+    }
+    .header::after {
+      content: ''; display: block;
+      width: 32px; height: 1px;
+      background: var(--accent);
+      margin: 10px auto 0; opacity: .7;
+    }
+    .brand-ko {
+      font-size: 20px; font-weight: 500;
+      color: #fff; letter-spacing: .18em;
+    }
+    .brand-sub {
+      font-size: 10px; color: rgba(201,169,110,0.8);
+      letter-spacing: .22em; text-transform: uppercase; margin-top: 4px;
+    }
+
+    /* 날짜바 */
+    .date-bar {
+      background: #f0efe9; border-bottom: 1px solid var(--border);
+      padding: 10px 28px; text-align: center;
+      font-size: 13px; color: var(--dark);
+      font-weight: 500; letter-spacing: .04em;
+    }
+
+    /* 탭 */
+    .tabs {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      padding: 13px; text-align: center;
+      font-size: 13px; font-weight: 500; color: var(--muted);
+      cursor: pointer; border-bottom: 2px solid transparent;
+      transition: color .2s, border-color .2s;
+      background: none; border-top: none; border-left: none; border-right: none;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .tab.active { color: var(--dark); border-bottom-color: var(--dark); }
+
+    /* 패널 */
+    .panel { display: none; padding: 22px 24px 28px; flex-direction: column; gap: 16px; }
+    .panel.active { display: flex; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    label {
+      font-size: 11px; font-weight: 500; color: var(--muted);
+      letter-spacing: .12em; text-transform: uppercase;
+    }
+
+    /* 이름 검색 + 선택 */
+    .name-search-wrap { position: relative; }
+    .name-search {
+      width: 100%; padding: 12px 16px;
+      border: 1.5px solid var(--border); border-radius: 10px 10px 0 0;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 14px; color: var(--text); background: var(--cream);
+      border-bottom: none;
+    }
+    .name-search:focus { outline: none; border-color: var(--dark); background: #fff; }
+    .name-search::placeholder { color: var(--muted); }
+
+    .name-dropdown {
+      width: 100%;
+      border: 1.5px solid var(--border); border-radius: 0 0 10px 10px;
+      background: var(--surface); overflow-y: auto; max-height: 180px;
+      border-top: 1px solid #eee;
+    }
+    .name-option {
+      padding: 11px 16px; font-size: 14px; color: var(--text);
+      cursor: pointer; transition: background .15s;
+    }
+    .name-option:hover  { background: var(--cream); }
+    .name-option.selected { background: var(--dark); color: #fff; font-weight: 500; }
+    .name-option.hidden { display: none; }
+    .name-empty { padding: 12px 16px; font-size: 13px; color: var(--muted); text-align: center; }
+
+    /* 선택 완료 표시 */
+    .name-selected-badge {
+      display: none; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--dark); border-radius: 8px;
+      font-size: 14px; font-weight: 500; color: #fff;
+      margin-top: 6px;
+    }
+    .name-selected-badge.show { display: flex; }
+    .badge-clear {
+      background: none; border: none; color: rgba(255,255,255,.6);
+      font-size: 16px; cursor: pointer; padding: 0;
+    }
+
+    select {
+      width: 100%; padding: 13px 16px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 15px; color: var(--text); background: var(--cream);
+      transition: border-color .2s; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a9690' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center;
+    }
+    select:focus { outline: none; border-color: var(--dark); background: #fff; }
+
+    input[type="date"], input[type="text"] {
+      width: 100%; padding: 13px 16px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 15px; color: var(--text); background: var(--cream);
+      transition: border-color .2s;
+    }
+    input:focus { outline: none; border-color: var(--dark); background: #fff; }
+
+    .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .time-selects { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; }
+    .time-colon { font-size: 18px; font-weight: 400; color: var(--muted); text-align: center; }
+
+    /* 포지션 버튼 */
+    .position-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pos-btn {
+      padding: 13px; border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 14px; font-weight: 400; color: var(--muted);
+      background: var(--cream); cursor: pointer; transition: all .2s;
+    }
+    .pos-btn.active {
+      background: var(--dark); color: #fff;
+      border-color: var(--dark); font-weight: 500;
+    }
+
+    .msg {
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 13px; line-height: 1.6; text-align: center; display: none;
+    }
+    .msg.show    { display: block; }
+    .msg.success { background: #edf5f0; color: var(--success); }
+    .msg.error   { background: #fceaea; color: var(--error); }
+    .msg.warn    { background: #fdf5e8; color: var(--warn); }
+    .msg.loading { background: #f0efe9; color: var(--muted); }
+
+    /* 제출 버튼 */
+    .btn-submit {
+      width: 100%; padding: 16px;
+      background: var(--dark); color: #fff;
+      border: none; border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 15px; font-weight: 500; letter-spacing: .06em;
+      cursor: pointer; box-shadow: 0 4px 16px rgba(26,26,24,0.20);
+      transition: box-shadow .2s, transform .15s, opacity .15s;
+    }
+    .btn-submit:hover:not(:disabled) { box-shadow: 0 6px 22px rgba(26,26,24,0.30); }
+    .btn-submit:active { transform: scale(.98); }
+    .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* 완료 화면 */
+    .result-card {
+      display: none; margin: 0 24px 28px;
+      background: #edf5f0; border-radius: 12px;
+      padding: 20px; text-align: center;
+    }
+    .result-card.show { display: block; animation: fadeIn .3s ease; }
+    @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+    .result-name  { font-size: 16px; font-weight: 500; color: var(--success); margin-bottom: 8px; }
+    .result-times { font-size: 13px; color: #5a7a65; line-height: 2; }
+    .result-work  { font-size: 22px; font-weight: 500; color: var(--success); margin-top: 6px; }
+    .btn-reset {
+      margin-top: 14px; padding: 9px 24px;
+      background: transparent; border: 1.5px solid var(--success);
+      border-radius: 8px; color: var(--success);
+      font-size: 13px; cursor: pointer;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    /* 과거 안내 */
+    .notice {
+      background: #fdf5e8; border-radius: 10px;
+      padding: 12px 14px; font-size: 12px;
+      color: var(--warn); line-height: 1.7;
+    }
+    .notice strong { display: block; margin-bottom: 2px; font-size: 13px; }
+
+    /* 이름 관리 토글 */
+    .btn-manage-toggle {
+      margin-top: 14px; background: none; border: none;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 11px; color: var(--muted);
+      letter-spacing: .08em; cursor: pointer;
+      text-decoration: underline; text-underline-offset: 3px;
+      transition: color .2s;
+    }
+    .btn-manage-toggle:hover { color: var(--dark); }
+
+    .manage-card {
+      display: none; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 16px;
+      width: 100%; max-width: 400px;
+      overflow: hidden; margin-top: 10px;
+      box-shadow: 0 4px 24px rgba(26,26,24,0.08);
+      animation: fadeUp .3s ease both;
+    }
+    .manage-card.show { display: block; }
+    .manage-lock-inner {
+      padding: 24px 28px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .manage-lock-title { font-size: 13px; font-weight: 500; color: var(--muted); text-align: center; letter-spacing: .08em; }
+    .manage-lock-inner input {
+      width: 100%; padding: 12px 16px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 15px; color: var(--text); background: var(--cream);
+    }
+    .manage-lock-inner input:focus { outline: none; border-color: var(--dark); background: #fff; }
+    #manage-body { padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+    .manage-title { font-size: 13px; font-weight: 500; color: var(--text); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .add-row { display: flex; gap: 10px; }
+    .add-row input {
+      flex: 1; padding: 11px 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 14px; color: var(--text); background: var(--cream);
+    }
+    .add-row input:focus { outline: none; border-color: var(--dark); background: #fff; }
+    .btn-add-name {
+      padding: 11px 18px; background: var(--dark); color: #fff;
+      border: none; border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      white-space: nowrap; transition: opacity .2s;
+    }
+    .btn-add-name:hover { opacity: .85; }
+    .staff-chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .staff-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--cream); border: 1px solid var(--border);
+      border-radius: 20px; padding: 7px 14px;
+      font-size: 13px; color: var(--text);
+    }
+    .chip-del {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 15px; line-height: 1;
+      padding: 0; transition: color .2s;
+    }
+    .chip-del:hover { color: var(--error); }
+
+    .footer {
+      text-align: center; margin-top: 18px;
+      font-size: 11px; color: var(--muted); letter-spacing: .06em;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="header">
+    <div class="brand-ko">만돈</div>
+    <div class="brand-sub">Daily Work Record</div>
+  </div>
+
+  <div class="date-bar" id="date-str">--</div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('today', this)">오늘 출퇴근</button>
+    <button class="tab"        onclick="switchTab('past',  this)">과거 날짜 신청</button>
+  </div>
+
+  <!-- ── 오늘 출퇴근 ── -->
+  <div class="panel active" id="panel-today">
+
+    <div class="field">
+      <label>이름 검색</label>
+      <!-- 이름 검색 UI -->
+      <div class="name-search-wrap" id="search-wrap">
+        <input type="text" class="name-search" id="name-search"
+          placeholder="이름 입력 또는 스크롤로 선택"
+          oninput="filterNames()" onfocus="openDropdown()" />
+        <div class="name-dropdown" id="name-dropdown">
+          <div class="name-empty">직원 목록 불러오는 중...</div>
+        </div>
+      </div>
+      <div class="name-selected-badge" id="name-badge">
+        <span id="badge-text"></span>
+        <button class="badge-clear" onclick="clearName()">×</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>포지션</label>
+      <div class="position-row">
+        <button class="pos-btn" id="pos-part" onclick="selectPosition('파트타이머')">파트타이머</button>
+        <button class="pos-btn" id="pos-main" onclick="selectPosition('메인')">메인</button>
+      </div>
+    </div>
+
+    <div class="time-row">
+      <div class="field">
+        <label>출근 시간</label>
+        <div class="time-selects">
+          <select id="in-h"><option value="">시</option></select>
+          <span class="time-colon">:</span>
+          <select id="in-m">
+            <option value="">분</option>
+            <option value="00">00분</option>
+            <option value="30">30분</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>퇴근 시간</label>
+        <div class="time-selects">
+          <select id="out-h"><option value="">시</option></select>
+          <span class="time-colon">:</span>
+          <select id="out-m">
+            <option value="">분</option>
+            <option value="00">00분</option>
+            <option value="30">30분</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+  <!-- 완료 화면 -->
+  <div class="result-card" id="result-card">
+    <div class="result-name"  id="result-name"></div>
+    <div class="result-times" id="result-times"></div>
+    <div class="result-work"  id="result-work"></div>
+    <button class="btn-reset" onclick="resetToday()">다른 직원 입력</button>
+  </div>
+
+  <!-- ── 과거 날짜 신청 ── -->
+  <div class="panel" id="panel-past">
+    <div class="notice">
+      <strong>📋 과거 날짜 신청 안내</strong>
+      입력을 못한 날짜를 신청하면 관리자 승인 후 기록에 반영됩니다.
+    </div>
+
+    <div class="field">
+      <label>이름 검색</label>
+      <div class="name-search-wrap">
+        <input type="text" class="name-search" id="past-name-search"
+          placeholder="이름 입력 또는 스크롤로 선택"
+          oninput="filterPastNames()" onfocus="openPastDropdown()" />
+        <div class="name-dropdown" id="past-name-dropdown">
+          <div class="name-empty">직원 목록 불러오는 중...</div>
+        </div>
+      </div>
+      <div class="name-selected-badge" id="past-name-badge">
+        <span id="past-badge-text"></span>
+        <button class="badge-clear" onclick="clearPastName()">×</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>포지션</label>
+      <div class="position-row">
+        <button class="pos-btn" id="p-pos-part" onclick="selectPastPosition('파트타이머')">파트타이머</button>
+        <button class="pos-btn" id="p-pos-main" onclick="selectPastPosition('메인')">메인</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>날짜</label>
+      <input type="date" id="past-date" />
+    </div>
+
+    <div class="time-row">
+      <div class="field">
+        <label>출근 시간</label>
+        <div class="time-selects">
+          <select id="p-in-h"><option value="">시</option></select>
+          <span class="time-colon">:</span>
+          <select id="p-in-m">
+            <option value="">분</option>
+            <option value="00">00분</option>
+            <option value="30">30분</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>퇴근 시간</label>
+        <div class="time-selects">
+          <select id="p-out-h"><option value="">시</option></select>
+          <span class="time-colon">:</span>
+          <select id="p-out-m">
+            <option value="">분</option>
+            <option value="00">00분</option>
+            <option value="30">30분</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>사유 (선택)</label>
+      <input type="text" id="past-reason" placeholder="예: 입력 깜빡함" />
+    </div>
+
+    <div id="msg-past" class="msg"></div>
+    <button class="btn-submit" onclick="submitPast()">신청하기</button>
+  </div>
+</div>
+
+<!-- 이름 관리 토글 -->
+<button class="btn-manage-toggle" onclick="toggleManage()">직원 이름 관리</button>
+
+<!-- 이름 관리 패널 -->
+<div class="manage-card" id="manage-card">
+  <div id="manage-lock">
+    <div class="manage-lock-inner">
+      <div class="manage-lock-title">관리자 확인</div>
+      <input type="password" id="manage-pw" placeholder="비밀번호 입력"
+        onkeydown="if(event.key==='Enter') unlockManage()" />
+      <div id="msg-lock" class="msg"></div>
+      <button class="btn-submit" style="margin-top:4px" onclick="unlockManage()">확인</button>
+    </div>
+  </div>
+  <div id="manage-body" style="display:none">
+    <div class="manage-title">직원 이름 관리</div>
+    <div class="add-row">
+      <input type="text" id="new-staff-name" placeholder="추가할 이름 입력"
+        onkeydown="if(event.key==='Enter') addStaffFromIndex()" />
+      <button class="btn-add-name" onclick="addStaffFromIndex()">추가</button>
+    </div>
+    <div id="msg-manage" class="msg"></div>
+    <div class="staff-chip-list" id="manage-staff-list">불러오는 중...</div>
+  </div>
+</div>
+
+<div class="footer">만돈 웨스턴돔점 · Belle & Beau</div>
+
+<script>
+  // ============================================================
+  // ✏️ Apps Script 배포 URL 입력
+  // ============================================================
+  const API_URL = "여기에_만돈_Apps_Script_배포_URL_입력";
+  // ============================================================
+
+  let allNames      = [];
+  let selectedName  = '';
+  let selectedPastName = '';
+  let selectedPosition = '';
+  let selectedPastPosition = '';
+  let manageUnlocked = false;
+
+  // 포지션 선택
+  function selectPosition(pos) {
+    selectedPosition = pos;
+    document.getElementById('pos-part').classList.toggle('active', pos === '파트타이머');
+    document.getElementById('pos-main').classList.toggle('active', pos === '메인');
+  }
+  function selectPastPosition(pos) {
+    selectedPastPosition = pos;
+    document.getElementById('p-pos-part').classList.toggle('active', pos === '파트타이머');
+    document.getElementById('p-pos-main').classList.toggle('active', pos === '메인');
+  }
+
+  // 날짜 표시
+  const todayDate = new Date();
+  document.getElementById('date-str').textContent =
+    todayDate.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+
+  // 과거 날짜 max = 어제
+  const yesterday = new Date(todayDate);
+  yesterday.setDate(yesterday.getDate() - 1);
+  document.getElementById('past-date').max = yesterday.toISOString().split('T')[0];
+
+  // 시간 옵션 생성
+  function buildHours(...ids) {
+    ids.forEach(id => {
+      const sel = document.getElementById(id);
+      for (let h = 6; h <= 23; h++) {
+        const o = document.createElement('option');
+        o.value = String(h).padStart(2,'0');
+        o.textContent = h + '시';
+        sel.appendChild(o);
+      }
+    });
+  }
+  buildHours('in-h','out-h','p-in-h','p-out-h');
+
+  // 직원 이름 불러오기
+  async function loadStaff() {
+    try {
+      const res  = await fetch(`${API_URL}?action=getStaff`);
+      const data = await res.json();
+      if (data.result === 'success') {
+        allNames = data.names;
+        renderDropdown('name-dropdown', allNames, selectName);
+        renderDropdown('past-name-dropdown', allNames, selectPastName);
+      }
+    } catch(e) {
+      document.getElementById('name-dropdown').innerHTML = '<div class="name-empty">불러오기 실패. 새로고침 해주세요.</div>';
+    }
+  }
+  loadStaff();
+
+  // 드롭다운 렌더링
+  function renderDropdown(id, names, onSelect) {
+    const el = document.getElementById(id);
+    if (names.length === 0) {
+      el.innerHTML = '<div class="name-empty">등록된 직원이 없습니다.</div>';
+      return;
+    }
+    el.innerHTML = names.map(n => `
+      <div class="name-option" onclick="${onSelect.name}('${n}')">${n}</div>
+    `).join('');
+  }
+
+  // 이름 검색 필터 (오늘 탭)
+  function filterNames() {
+    const q = document.getElementById('name-search').value.trim();
+    document.querySelectorAll('#name-dropdown .name-option').forEach(el => {
+      el.classList.toggle('hidden', q && !el.textContent.includes(q));
+    });
+  }
+
+  // 이름 검색 필터 (과거 탭)
+  function filterPastNames() {
+    const q = document.getElementById('past-name-search').value.trim();
+    document.querySelectorAll('#past-name-dropdown .name-option').forEach(el => {
+      el.classList.toggle('hidden', q && !el.textContent.includes(q));
+    });
+  }
+
+  function openDropdown()     { document.getElementById('name-dropdown').style.display = 'block'; }
+  function openPastDropdown() { document.getElementById('past-name-dropdown').style.display = 'block'; }
+
+  // 이름 선택 (오늘)
+  function selectName(name) {
+    selectedName = name;
+    document.getElementById('search-wrap').style.display = 'none';
+    document.getElementById('badge-text').textContent = name;
+    document.getElementById('name-badge').classList.add('show');
+  }
+  function clearName() {
+    selectedName = '';
+    document.getElementById('name-search').value = '';
+    document.getElementById('search-wrap').style.display = 'block';
+    document.getElementById('name-badge').classList.remove('show');
+    filterNames();
+  }
+
+  // 이름 선택 (과거)
+  function selectPastName(name) {
+    selectedPastName = name;
+    document.querySelector('#panel-past .name-search-wrap').style.display = 'none';
+    document.getElementById('past-badge-text').textContent = name;
+    document.getElementById('past-name-badge').classList.add('show');
+  }
+  function clearPastName() {
+    selectedPastName = '';
+    document.getElementById('past-name-search').value = '';
+    document.querySelector('#panel-past .name-search-wrap').style.display = 'block';
+    document.getElementById('past-name-badge').classList.remove('show');
+    filterPastNames();
+  }
+
+  // 외부 클릭 시 드롭다운 닫기
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#search-wrap'))
+      document.getElementById('name-dropdown').style.display = 'none';
+    if (!e.target.closest('#panel-past .name-search-wrap'))
+      document.getElementById('past-name-dropdown').style.display = 'none';
+  });
+
+  // 탭 전환
+  function switchTab(tab, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-' + tab).classList.add('active');
+    document.getElementById('result-card').classList.remove('show');
+    document.getElementById('panel-today').style.display = tab === 'today' ? 'flex' : 'none';
+  }
+
+  // 메시지
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text; el.className = `msg show ${type}`;
+  }
+  function hideMsg(id) {
+    const el = document.getElementById(id);
+    el.className = 'msg'; el.textContent = '';
+  }
+
+  // 시간 조합
+  function getTime(hId, mId) {
+    const h = document.getElementById(hId).value;
+    const m = document.getElementById(mId).value;
+    return (!h || m === '') ? null : `${h}:${m}`;
+  }
+
+  // ── 오늘 제출 ──
+  async function submitToday() {
+    const name     = selectedName;
+    const checkIn  = getTime('in-h','in-m');
+    const checkOut = getTime('out-h','out-m');
+
+    if (!name)             { showMsg('msg-today','이름을 선택해주세요.','warn'); return; }
+    if (!selectedPosition) { showMsg('msg-today','포지션을 선택해주세요.','warn'); return; }
+    if (!checkIn)          { showMsg('msg-today','출근 시간을 선택해주세요.','warn'); return; }
+    if (!checkOut)         { showMsg('msg-today','퇴근 시간을 선택해주세요.','warn'); return; }
+
+    const [iH,iM] = checkIn.split(':').map(Number);
+    const [oH,oM] = checkOut.split(':').map(Number);
+    if ((oH*60+oM) <= (iH*60+iM)) { showMsg('msg-today','퇴근 시간이 출근 시간보다 빠릅니다.','error'); return; }
+
+    const btn = document.querySelector('#panel-today .btn-submit');
+    btn.disabled = true;
+    showMsg('msg-today','기록 중...','loading');
+
+    try {
+      const res  = await fetch(API_URL, {
+        method: 'POST', redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action:'submit', name, position: selectedPosition, checkIn, checkOut })
+      });
+      const data = await res.json();
+
+      if (data.result === 'success') {
+        hideMsg('msg-today');
+        document.getElementById('panel-today').style.display = 'none';
+        document.getElementById('result-name').textContent  = `${data.name}님 기록 완료 ✓`;
+        document.getElementById('result-times').innerHTML   =
+          `<span style="font-size:12px;color:#5a7a65">${data.position}</span><br>출근 <strong>${data.checkIn}</strong> → 퇴근 <strong>${data.checkOut}</strong>`;
+        document.getElementById('result-work').textContent  = `총 ${data.summary}시간 근무`;
+        document.getElementById('result-card').classList.add('show');
+      } else {
+        showMsg('msg-today', data.message || '오류가 발생했습니다.', data.result === 'duplicate' ? 'warn' : 'error');
+        btn.disabled = false;
+      }
+    } catch(err) {
+      showMsg('msg-today','서버 연결에 실패했습니다. 다시 시도해주세요.','error');
+      btn.disabled = false;
+    }
+  }
+
+  function resetToday() {
+    selectedName = '';
+    selectedPosition = '';
+    clearName();
+    ['pos-part','pos-main'].forEach(id => document.getElementById(id).classList.remove('active'));
+    ['in-h','in-m','out-h','out-m'].forEach(id => document.getElementById(id).value = '');
+    hideMsg('msg-today');
+    document.querySelector('#panel-today .btn-submit').disabled = false;
+    document.getElementById('panel-today').style.display = 'flex';
+    document.getElementById('result-card').classList.remove('show');
+  }
+
+  // ── 과거 신청 ──
+  async function submitPast() {
+    const name     = selectedPastName;
+    const date     = document.getElementById('past-date').value;
+    const checkIn  = getTime('p-in-h','p-in-m');
+    const checkOut = getTime('p-out-h','p-out-m');
+    const reason   = document.getElementById('past-reason').value.trim();
+
+    if (!name)                 { showMsg('msg-past','이름을 선택해주세요.','warn'); return; }
+    if (!selectedPastPosition) { showMsg('msg-past','포지션을 선택해주세요.','warn'); return; }
+    if (!date)                 { showMsg('msg-past','날짜를 선택해주세요.','warn'); return; }
+    if (!checkIn)              { showMsg('msg-past','출근 시간을 선택해주세요.','warn'); return; }
+    if (!checkOut)             { showMsg('msg-past','퇴근 시간을 선택해주세요.','warn'); return; }
+
+    const [iH,iM] = checkIn.split(':').map(Number);
+    const [oH,oM] = checkOut.split(':').map(Number);
+    if ((oH*60+oM) <= (iH*60+iM)) { showMsg('msg-past','퇴근 시간이 출근 시간보다 빠릅니다.','error'); return; }
+
+    const btn = document.querySelector('#panel-past .btn-submit');
+    btn.disabled = true;
+    showMsg('msg-past','신청 중...','loading');
+
+    try {
+      const res  = await fetch(API_URL, {
+        method: 'POST', redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action:'submitPast', name, position: selectedPastPosition, date, checkIn, checkOut, reason })
+      });
+      const data = await res.json();
+      showMsg('msg-past', data.message || '처리됐습니다.', data.result === 'success' ? 'success' : data.result === 'duplicate' ? 'warn' : 'error');
+      if (data.result === 'success') {
+        clearPastName();
+        selectedPastPosition = '';
+        ['p-pos-part','p-pos-main'].forEach(id => document.getElementById(id).classList.remove('active'));
+        document.getElementById('past-date').value   = '';
+        document.getElementById('past-reason').value = '';
+        ['p-in-h','p-in-m','p-out-h','p-out-m'].forEach(id => document.getElementById(id).value = '');
+      }
+    } catch(err) {
+      showMsg('msg-past','서버 연결에 실패했습니다. 다시 시도해주세요.','error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── 이름 관리 ──
+  function toggleManage() {
+    const card = document.getElementById('manage-card');
+    card.classList.toggle('show');
+    if (card.classList.contains('show') && manageUnlocked) renderManageStaff();
+  }
+
+  async function unlockManage() {
+    const pw = document.getElementById('manage-pw').value;
+    if (!pw) return;
+    showMsg('msg-lock','확인 중...','loading');
+    try {
+      const res  = await fetch(`${API_URL}?action=getPending&pw=${encodeURIComponent(pw)}`);
+      const data = await res.json();
+      if (data.result === 'auth') { showMsg('msg-lock','비밀번호가 틀렸습니다.','error'); return; }
+      manageUnlocked = true;
+      sessionStorage.setItem('mgPw', pw);
+      document.getElementById('manage-lock').style.display = 'none';
+      document.getElementById('manage-body').style.display = 'flex';
+      renderManageStaff();
+    } catch(e) {
+      showMsg('msg-lock','서버 연결에 실패했습니다.','error');
+    }
+  }
+
+  async function renderManageStaff() {
+    try {
+      const res  = await fetch(`${API_URL}?action=getStaff`);
+      const data = await res.json();
+      const el   = document.getElementById('manage-staff-list');
+      if (!data.names || data.names.length === 0) {
+        el.innerHTML = '<span style="font-size:13px;color:var(--muted)">등록된 직원이 없습니다.</span>';
+        return;
+      }
+      el.innerHTML = data.names.map(n => `
+        <div class="staff-chip">
+          ${n}
+          <button class="chip-del" onclick="deleteStaffFromIndex('${n}')" title="삭제">×</button>
+        </div>
+      `).join('');
+    } catch(e) {}
+  }
+
+  async function addStaffFromIndex() {
+    const pw   = sessionStorage.getItem('mgPw');
+    const name = document.getElementById('new-staff-name').value.trim();
+    if (!name) return;
+    const res  = await fetch(API_URL, {
+      method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'addStaff', pw, name })
+    });
+    const data = await res.json();
+    showMsg('msg-manage', data.message, data.result === 'success' ? 'success' : data.result === 'duplicate' ? 'warn' : 'error');
+    if (data.result === 'success') {
+      document.getElementById('new-staff-name').value = '';
+      renderManageStaff();
+      loadStaff();
+    }
+  }
+
+  async function deleteStaffFromIndex(name) {
+    if (!confirm(`${name}님을 삭제하시겠습니까?`)) return;
+    const pw  = sessionStorage.getItem('mgPw');
+    const res = await fetch(API_URL, {
+      method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action:'deleteStaff', pw, name })
+    });
+    const data = await res.json();
+    showMsg('msg-manage', data.message, data.result === 'success' ? 'success' : 'error');
+    if (data.result === 'success') { renderManageStaff(); loadStaff(); }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>만돈 — 관리자</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --dark:    #1a1a18;
+      --dark2:   #2a2a26;
+      --accent:  #c9a96e;
+      --cream:   #f4f3ef;
+      --surface: #ffffff;
+      --border:  #e4e1da;
+      --text:    #1a1a18;
+      --muted:   #9a9690;
+      --success: #4a7c59;
+      --error:   #c0392b;
+      --warn:    #b5873c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--cream); min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; padding: 32px 16px;
+    }
+
+    .login-wrap {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; width: 100%;
+      position: fixed; inset: 0; background: var(--cream); z-index: 100;
+    }
+    .login-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; width: 100%; max-width: 340px;
+      overflow: hidden; box-shadow: 0 8px 40px rgba(26,26,24,0.12);
+      animation: fadeUp .4s ease both;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:translateY(0);} }
+
+    .login-header {
+      background: var(--dark); padding: 28px; text-align: center;
+    }
+    .login-header::after {
+      content: ''; display: block; width: 30px; height: 1px;
+      background: var(--accent); margin: 8px auto 0;
+    }
+    .brand-ko { font-size: 20px; font-weight: 500; color: #fff; letter-spacing: .14em; }
+    .brand-sub {
+      font-size: 10px; color: rgba(201,169,110,0.8);
+      letter-spacing: .22em; text-transform: uppercase; margin-top: 4px;
+    }
+    .login-body { padding: 28px; display: flex; flex-direction: column; gap: 14px; }
+    .login-body label {
+      font-size: 11px; font-weight: 500; color: var(--muted);
+      letter-spacing: .12em; text-transform: uppercase; margin-bottom: 6px; display: block;
+    }
+    .login-body input {
+      width: 100%; padding: 13px 16px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: 15px; font-family: 'Noto Sans KR', sans-serif;
+      color: var(--text); background: var(--cream);
+    }
+    .login-body input:focus { outline: none; border-color: var(--dark); background: #fff; }
+
+    .btn-primary {
+      padding: 14px; background: var(--dark); color: #fff;
+      border: none; border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 14px; font-weight: 500; cursor: pointer;
+      width: 100%; transition: opacity .2s;
+    }
+    .btn-primary:hover { opacity: .88; }
+
+    .btn-sm {
+      padding: 7px 16px; border: none; border-radius: 7px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: opacity .2s;
+    }
+    .btn-sm:hover { opacity: .82; }
+    .btn-approve { background: var(--success); color: #fff; }
+    .btn-reject  { background: #e4e1da; color: var(--text); }
+
+    .main { width: 100%; max-width: 680px; display: none; flex-direction: column; gap: 24px; }
+    .main.show { display: flex; }
+
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    }
+    .top-title { font-size: 18px; font-weight: 500; color: var(--dark); letter-spacing: .06em; }
+    .btn-logout {
+      padding: 8px 16px; background: transparent;
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 12px; color: var(--muted); cursor: pointer;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+
+    .section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+    .section-header {
+      padding: 16px 22px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .section-title { font-size: 14px; font-weight: 500; color: var(--text); }
+    .badge {
+      background: var(--dark); color: #fff;
+      font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    }
+    .section-body { padding: 18px 22px; display: flex; flex-direction: column; gap: 12px; }
+
+    .pending-card {
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+      animation: fadeIn .3s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+    .pending-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .pending-name { font-size: 15px; font-weight: 500; color: var(--text); }
+    .pending-date { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .pending-time { font-size: 13px; color: var(--dark); font-weight: 500; }
+    .pending-reason { font-size: 12px; color: var(--muted); }
+    .pending-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    .staff-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .staff-chip {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--cream); border: 1px solid var(--border);
+      border-radius: 20px; padding: 6px 14px;
+      font-size: 13px; color: var(--text);
+    }
+    .chip-del {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 14px; line-height: 1;
+      padding: 0; transition: color .2s;
+    }
+    .chip-del:hover { color: var(--error); }
+
+    .add-row { display: flex; gap: 10px; }
+    .add-row input {
+      flex: 1; padding: 11px 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 14px; color: var(--text); background: var(--cream);
+    }
+    .add-row input:focus { outline: none; border-color: var(--dark); background: #fff; }
+    .add-row .btn-add {
+      padding: 11px 20px; background: var(--dark); color: #fff;
+      border: none; border-radius: 10px;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity .2s;
+    }
+    .add-row .btn-add:hover { opacity: .85; }
+
+    .msg {
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 13px; display: none; text-align: center;
+    }
+    .msg.show { display: block; }
+    .msg.success { background: #edf5f0; color: var(--success); }
+    .msg.error   { background: #fceaea; color: var(--error); }
+    .msg.warn    { background: #fdf5e8; color: var(--warn); }
+
+    .empty { font-size: 13px; color: var(--muted); text-align: center; padding: 16px 0; }
+    .footer { text-align: center; margin-top: 16px; font-size: 11px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div class="login-wrap" id="login-wrap">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="brand-ko">만돈</div>
+      <div class="brand-sub">Admin</div>
+    </div>
+    <div class="login-body">
+      <div>
+        <label>관리자 비밀번호</label>
+        <input type="password" id="pw-input" placeholder="비밀번호 입력"
+          onkeydown="if(event.key==='Enter') login()" />
+      </div>
+      <div id="msg-login" class="msg"></div>
+      <button class="btn-primary" onclick="login()">로그인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 메인 -->
+<div class="main" id="main">
+  <div class="top-bar">
+    <div class="top-title">만돈 관리자</div>
+    <button class="btn-logout" onclick="logout()">로그아웃</button>
+  </div>
+
+  <!-- 승인 대기 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">승인 대기</span>
+      <span class="badge" id="pending-count">0</span>
+    </div>
+    <div class="section-body">
+      <div id="msg-approve" class="msg"></div>
+      <div id="pending-list"><div class="empty">불러오는 중...</div></div>
+    </div>
+  </div>
+
+  <!-- 직원 명단 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">직원 명단</span>
+    </div>
+    <div class="section-body">
+      <div class="add-row">
+        <input type="text" id="new-staff" placeholder="이름 입력"
+          onkeydown="if(event.key==='Enter') addStaff()" />
+        <button class="btn-add" onclick="addStaff()">추가</button>
+      </div>
+      <div id="msg-staff" class="msg"></div>
+      <div class="staff-list" id="staff-list"><div class="empty">불러오는 중...</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer" id="footer" style="display:none">만돈 웨스턴돔점 · Belle & Beau</div>
+
+<script>
+  // ============================================================
+  // ✏️ Apps Script 배포 URL 입력
+  // ============================================================
+  const API_URL = "여기에_만돈_Apps_Script_배포_URL_입력";
+  // ============================================================
+
+  let adminPw = '';
+
+  async function login() {
+    const pw = document.getElementById('pw-input').value;
+    if (!pw) return;
+    showMsg('msg-login','확인 중...','warn');
+    try {
+      const res  = await fetch(`${API_URL}?action=getPending&pw=${encodeURIComponent(pw)}`);
+      const data = await res.json();
+      if (data.result === 'auth') { showMsg('msg-login','비밀번호가 틀렸습니다.','error'); return; }
+      adminPw = pw;
+      document.getElementById('login-wrap').style.display = 'none';
+      document.getElementById('main').classList.add('show');
+      document.getElementById('footer').style.display = 'block';
+      renderPending(data.list);
+      loadStaff();
+    } catch(e) {
+      showMsg('msg-login','서버 연결에 실패했습니다.','error');
+    }
+  }
+
+  function logout() {
+    adminPw = '';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('login-wrap').style.display = 'flex';
+    document.getElementById('main').classList.remove('show');
+    document.getElementById('footer').style.display = 'none';
+  }
+
+  function renderPending(list) {
+    const el = document.getElementById('pending-list');
+    document.getElementById('pending-count').textContent = list.length;
+    if (list.length === 0) { el.innerHTML = '<div class="empty">대기 중인 신청이 없습니다.</div>'; return; }
+    el.innerHTML = list.map(r => `
+      <div class="pending-card" id="pcard-${r.row}">
+        <div class="pending-top">
+          <div>
+            <div class="pending-name">${r.name} <span style="font-size:11px;color:var(--muted);font-weight:400">${r.position || ''}</span></div>
+            <div class="pending-date">${r.date} · 신청 ${r.appliedAt}</div>
+          </div>
+          <div class="pending-time">${r.checkIn} → ${r.checkOut} (${r.workH}h)</div>
+        </div>
+        ${r.reason ? `<div class="pending-reason">사유: ${r.reason}</div>` : ''}
+        <div class="pending-actions">
+          <button class="btn-sm btn-reject"  onclick="rejectRow(${r.row})">거절</button>
+          <button class="btn-sm btn-approve" onclick="approveRow(${r.row})">승인</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function approveRow(row) {
+    if (!confirm('승인하시겠습니까?')) return;
+    const res  = await postAction({ action:'approve', pw: adminPw, row });
+    const data = await res.json();
+    showMsg('msg-approve', data.message, data.result === 'success' ? 'success' : 'error');
+    if (data.result === 'success') {
+      document.getElementById(`pcard-${row}`)?.remove();
+      const c = document.getElementById('pending-count');
+      c.textContent = Math.max(0, parseInt(c.textContent) - 1);
+    }
+  }
+
+  async function rejectRow(row) {
+    if (!confirm('거절하시겠습니까?')) return;
+    const res  = await postAction({ action:'reject', pw: adminPw, row });
+    const data = await res.json();
+    showMsg('msg-approve', data.message, data.result === 'success' ? 'warn' : 'error');
+    if (data.result === 'success') {
+      document.getElementById(`pcard-${row}`)?.remove();
+      const c = document.getElementById('pending-count');
+      c.textContent = Math.max(0, parseInt(c.textContent) - 1);
+    }
+  }
+
+  async function loadStaff() {
+    try {
+      const res  = await fetch(`${API_URL}?action=getStaff`);
+      const data = await res.json();
+      if (data.result === 'success') renderStaff(data.names);
+    } catch(e) {}
+  }
+
+  function renderStaff(names) {
+    const el = document.getElementById('staff-list');
+    if (names.length === 0) { el.innerHTML = '<div class="empty">등록된 직원이 없습니다.</div>'; return; }
+    el.innerHTML = names.map(n => `
+      <div class="staff-chip">
+        ${n}
+        <button class="chip-del" onclick="deleteStaff('${n}')" title="삭제">×</button>
+      </div>
+    `).join('');
+  }
+
+  async function addStaff() {
+    const name = document.getElementById('new-staff').value.trim();
+    if (!name) return;
+    const res  = await postAction({ action:'addStaff', pw: adminPw, name });
+    const data = await res.json();
+    showMsg('msg-staff', data.message, data.result === 'success' ? 'success' : data.result === 'duplicate' ? 'warn' : 'error');
+    if (data.result === 'success') { document.getElementById('new-staff').value = ''; loadStaff(); }
+  }
+
+  async function deleteStaff(name) {
+    if (!confirm(`${name}님을 삭제하시겠습니까?`)) return;
+    const res  = await postAction({ action:'deleteStaff', pw: adminPw, name });
+    const data = await res.json();
+    showMsg('msg-staff', data.message, data.result === 'success' ? 'success' : 'error');
+    if (data.result === 'success') loadStaff();
+  }
+
+  function postAction(body) {
+    return fetch(API_URL, {
+      method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    });
+  }
+
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text; el.className = `msg show ${type}`;
+    setTimeout(() => { el.className = 'msg'; }, 4000);
+  }
+</script>
+</body>
+</html>
